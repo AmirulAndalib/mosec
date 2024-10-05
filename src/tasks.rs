@@ -15,12 +15,11 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
+use axum::http::StatusCode;
 use bytes::Bytes;
-use hyper::StatusCode;
-use once_cell::sync::OnceCell;
 use tokio::sync::{mpsc, oneshot, Barrier};
 use tokio::time;
 use tracing::{debug, error, info, warn};
@@ -32,18 +31,18 @@ use crate::protocol::communicate;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub(crate) enum TaskCode {
-    #[display(fmt = "200: OK")]
+    #[display("200: OK")]
     Normal,
-    #[display(fmt = "400: Bad Request")]
+    #[display("400: Bad Request")]
     BadRequestError,
-    #[display(fmt = "422: Unprocessable Content")]
+    #[display("422: Unprocessable Content")]
     ValidationError,
-    #[display(fmt = "408: Request Timeout")]
+    #[display("408: Request Timeout")]
     TimeoutError,
-    #[display(fmt = "500: Internal Server Error")]
+    #[display("500: Internal Server Error")]
     InternalError,
     // special case
-    #[display(fmt = "200: Server Sent Event")]
+    #[display("200: Server Sent Event")]
     StreamEvent,
 }
 
@@ -97,7 +96,7 @@ pub(crate) struct TaskManager {
     shutdown: AtomicBool,
 }
 
-pub(crate) static TASK_MANAGER: OnceCell<TaskManager> = OnceCell::new();
+pub(crate) static TASK_MANAGER: OnceLock<TaskManager> = OnceLock::new();
 
 impl TaskManager {
     pub(crate) fn global() -> &'static TaskManager {
